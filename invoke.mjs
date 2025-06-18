@@ -27,9 +27,9 @@ const event = {
                     "border": {
                         "color": "#3498db",
                         "size": 5
-                    }
-                },
-                "background": "#000"
+                    },
+                    "background-color": "#000"
+                }
             },
             {
                 "id": "name",
@@ -47,7 +47,9 @@ const event = {
                     "offsetX": 2,
                     "offsetY": 2,
                     "blur": 4
-                }
+                },
+                "background-color": "#ffff99",
+                "backgroundCornerRadius": 15
             }
         ]
     }

@@ -283,8 +283,9 @@ class BaseGenerator {
           image = sharp(maskedImageBuffer);
           
           // If background is specified, create a background with the same mask shape
-          if (element.background) {
-            const bgColor = element.background;
+          const bgColor = element.background ?? element.mask?.background ??
+            element.mask?.backgroundColor ?? element.mask?.['background-color'];
+          if (bgColor) {
             
             // Create a background with the same mask shape
             let bgSvg = '';
@@ -359,11 +360,12 @@ class BaseGenerator {
             // Create a background image with the background color
             const bgBuffer = Buffer.from(bgSvg);
             const bgImage = await sharp(bgBuffer).toBuffer();
-            
+
             // Get the current image buffer
             const currentImageBuffer = await image.toBuffer();
-            
-            // Create a new transparent image
+
+            // Create a new transparent image and encode as PNG so it can be
+            // re-opened by sharp without raw parameters
             const transparentImage = await sharp({
               create: {
                 width: width,
@@ -371,7 +373,7 @@ class BaseGenerator {
                 channels: 4,
                 background: { r: 0, g: 0, b: 0, alpha: 0 }
               }
-            }).toBuffer();
+            }).png().toBuffer();
             
             // Composite the background first, then the masked image on top
             const compositeBuffer = await sharp(transparentImage)
@@ -385,6 +387,7 @@ class BaseGenerator {
                   blend: 'over'
                 }
               ])
+              .png()
               .toBuffer();
               
             // Create a new sharp instance with the composited image
@@ -581,6 +584,7 @@ class BaseGenerator {
     let textContent = element.text;
     let hasHtmlTags = /<[^>]+>/.test(textContent);
     let textElement = '';
+    let measureElement = '';
     
     // Curved text
     if (element.curve) {
@@ -621,35 +625,74 @@ class BaseGenerator {
           <textPath href="#${pathId}" startOffset="50%" text-anchor="middle">${escapedText}</textPath>
         </text>
       `;
+      measureElement = textElement;
     } else {
       // Regular text - handle HTML tags like <br>
       if (hasHtmlTags) {
         // Handle <br> tags for line breaks
         const lines = textContent.split(/<br\s*\/?>/i);
         const lineHeight = parseInt(fontSize) * 1.2; // Approximate line height
-        
+
         textElement = `
           ${shadowFilter ? `<defs>${shadowFilter}</defs>` : ''}
           <text x="${xPos}" y="${yPos}" font-family="${fontFamily}" font-size="${fontSize}" font-weight="${fontWeight}" font-style="${fontStyle}" fill="${fill}" text-anchor="${textAnchor}" alignment-baseline="${alignmentBaseline}" transform="${transform}" ${element.shadow ? `filter="url(#${filterId})"` : ''}>
         `;
-        
+        measureElement = `<text x="0" y="0" font-family="${fontFamily}" font-size="${fontSize}" font-weight="${fontWeight}" font-style="${fontStyle}" alignment-baseline="hanging">`;
+
         lines.forEach((line, index) => {
           // Escape any remaining HTML tags in each line
           const escapedLine = line.replace(/</g, '&lt;').replace(/>/g, '&gt;');
           const dy = index === 0 ? '0' : `${lineHeight}`;
           textElement += `<tspan x="${xPos}" dy="${dy}" text-anchor="${textAnchor}">${escapedLine}</tspan>`;
+          measureElement += `<tspan x="0" dy="${dy}">${escapedLine}</tspan>`;
         });
-        
+
         textElement += `</text>`;
+        measureElement += `</text>`;
       } else {
         // No HTML tags, just regular text
         textElement = `
           ${shadowFilter ? `<defs>${shadowFilter}</defs>` : ''}
           <text x="${xPos}" y="${yPos}" font-family="${fontFamily}" font-size="${fontSize}" font-weight="${fontWeight}" font-style="${fontStyle}" fill="${fill}" text-anchor="${textAnchor}" alignment-baseline="${alignmentBaseline}" transform="${transform}" ${element.shadow ? `filter="url(#${filterId})"` : ''}>${textContent}</text>
         `;
+        measureElement = `<text x="0" y="0" font-family="${fontFamily}" font-size="${fontSize}" font-weight="${fontWeight}" font-style="${fontStyle}" alignment-baseline="hanging">${textContent}</text>`;
       }
     }
-  
+
+    // ----- Background behind text -----
+    const bgColor = element.background ?? element.backgroundColor ?? element['background-color'];
+    const cornerRadius = element.backgroundCornerRadius ?? element.backgroundRadius ?? element['background-corner-radius'] ?? 0;
+    if (bgColor && !element.curve) {
+      // Measure text dimensions using sharp (without position offsets)
+      const svgMeasure = `<svg xmlns="http://www.w3.org/2000/svg">${measureElement}</svg>`;
+      const { info } = await sharp(Buffer.from(svgMeasure)).png().toBuffer({ resolveWithObject: true });
+      calculatedData.width = info.width;
+      calculatedData.height = info.height;
+
+      const padding = 6;
+      const rectWidth = info.width + padding * 2;
+      const rectHeight = info.height + padding * 2;
+
+      let rectX = xPos - (textAnchor === 'middle' ? info.width / 2 : textAnchor === 'end' ? info.width : 0) - padding;
+      let baselineAdj = 0;
+      if (alignmentBaseline === 'hanging') {
+        baselineAdj = 0;
+      } else if (alignmentBaseline === 'middle') {
+        baselineAdj = -info.height / 2;
+      } else {
+        baselineAdj = -info.height;
+      }
+      const rectY = yPos + baselineAdj - padding;
+
+      const rectSvg = `<rect x="${rectX}" y="${rectY}" width="${rectWidth}" height="${rectHeight}" rx="${cornerRadius}" ry="${cornerRadius}" fill="${bgColor}" />`;
+      textElement = `${rectSvg}${textElement}`;
+    } else {
+      const svgMeasure = `<svg xmlns="http://www.w3.org/2000/svg">${measureElement}</svg>`;
+      const { info } = await sharp(Buffer.from(svgMeasure)).png().toBuffer({ resolveWithObject: true });
+      calculatedData.width = info.width;
+      calculatedData.height = info.height;
+    }
+
     return {
       type: 'svg',
       data: textElement,
