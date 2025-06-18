@@ -60,7 +60,8 @@ This will generate an `outputs/feature-examples.png` file showcasing all the ava
                 *   `border`: Object containing border properties for the mask. Optional.
                     *   `color`: The color of the border. Optional, default is '#000000'.
                     *   `size`: The size of the border in pixels. Optional, default is 5.
-            *   `background`: The background color to use behind the masked image. Optional.
+                *   `background`, `backgroundColor`, or `background-color`: Background color to place behind the masked image. Optional.
+            *   `background`: Background color can also be specified at the element level. Optional.
             
             If type is `text`, the element will be a text and have the following properties:
             *   `text`: The text to display. Can include HTML tags like `<br>` for line breaks.
@@ -70,6 +71,9 @@ This will generate an `outputs/feature-examples.png` file showcasing all the ava
             *   `fontSize`: The size of the font.
             *   `color`: The color of the text.
             *   `rotation`: The rotation of the text.
+            *   `background`, `backgroundColor`, or `background-color`: Background color behind the text. Optional.
+            *   `backgroundCornerRadius` or `background-corner-radius`: Corner radius for the background. Optional.
+            *   Backgrounds include a small internal margin and span all text lines, including those created with `<br>`.
             *   `shadow`: Object containing shadow properties. Optional.
                 *   `color`: The color of the shadow. Optional, default is 'black'.
                 *   `offsetX`: The horizontal offset of the shadow in pixels. Optional, default is 2.
