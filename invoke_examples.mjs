@@ -335,6 +335,20 @@ const event = {
                     "offsetY": 2,
                     "blur": 3
                 }
+            },
+            {
+                "id": "bg-text-example",
+                "type": "text",
+                "text": "Background<br>Text",
+                "fontFamily": "sans-serif",
+                "fontSize": "40px",
+                "fontWeight": "bold",
+                "color": "#333333",
+                "origin": "center",
+                "x": 0,
+                "y": 650,
+                "background-color": "#ffff99",
+                "backgroundCornerRadius": 20
             }
         ]
     }
