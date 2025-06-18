@@ -668,14 +668,7 @@ class BaseGenerator {
       const { info } = await sharp(Buffer.from(svgMeasure)).png().toBuffer({ resolveWithObject: true });
       calculatedData.width = info.width;
       calculatedData.height = info.height;
-      calculatedData.left = xPos - (textAnchor === 'middle' ? info.width / 2 : textAnchor === 'end' ? info.width : 0);
-      if (alignmentBaseline === 'hanging') {
-        calculatedData.top = yPos;
-      } else if (alignmentBaseline === 'middle') {
-        calculatedData.top = yPos - info.height / 2;
-      } else {
-        calculatedData.top = yPos - info.height;
-      }
+
 
       const padding = 6;
       const rectWidth = info.width + padding * 2;
@@ -699,14 +692,7 @@ class BaseGenerator {
       const { info } = await sharp(Buffer.from(svgMeasure)).png().toBuffer({ resolveWithObject: true });
       calculatedData.width = info.width;
       calculatedData.height = info.height;
-      calculatedData.left = xPos - (textAnchor === 'middle' ? info.width / 2 : textAnchor === 'end' ? info.width : 0);
-      if (alignmentBaseline === 'hanging') {
-        calculatedData.top = yPos;
-      } else if (alignmentBaseline === 'middle') {
-        calculatedData.top = yPos - info.height / 2;
-      } else {
-        calculatedData.top = yPos - info.height;
-      }
+
     }
 
     return {
