@@ -350,6 +350,7 @@ const event = {
                 "background-color": "#ffff99",
                 "backgroundCornerRadius": 20,
                 "backgroundPadding": 8
+
             }
         ]
     }

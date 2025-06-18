@@ -282,11 +282,13 @@ class BaseGenerator {
           // Create a new sharp instance with the masked image
           image = sharp(maskedImageBuffer);
           
+
           // If background is specified, create a background with the same mask shape
           const bgColor = element.background ?? element.mask?.background ??
             element.mask?.backgroundColor ?? element.mask?.['background-color'];
           if (bgColor) {
-            
+
+          
             // Create a background with the same mask shape
             let bgSvg = '';
             const shape = element.mask.shape?.toLowerCase() || 'circle';
@@ -358,6 +360,7 @@ class BaseGenerator {
             }
             
             // Create a background image with the background color
+
             const bgBuffer = Buffer.from(bgSvg);
             const bgImage = await sharp(bgBuffer).toBuffer();
 
@@ -389,7 +392,7 @@ class BaseGenerator {
               ])
               .png()
               .toBuffer();
-              
+
             // Create a new sharp instance with the composited image
             image = sharp(compositeBuffer);
           }
@@ -536,6 +539,7 @@ class BaseGenerator {
     let textAnchor = 'start'; // Default SVG text-anchor
     let alignmentBaseline = 'auto'; // Default SVG alignment-baseline. 'hanging' might be better for origin: null
   
+
     if (element.origin === 'center') {
       baseX = generator.imageWidth / 2;
       baseY = generator.imageHeight / 2;
@@ -546,6 +550,7 @@ class BaseGenerator {
       baseX = originElement.left; // Relative to origin element's top-left
       baseY = originElement.top;
       // Add logic for centering relative to origin element if needed
+
     } else {
       // Origin is null or invalid, use top-left of image as base
       // Use 'hanging' baseline for more predictable positioning from top
@@ -561,7 +566,9 @@ class BaseGenerator {
   
     // Store calculated position (approximated for text)
     // Note: actual width/height of rendered text isn't easily known here without complex text measurement
+
     const calculatedData = { left: xPos, top: yPos, width: 0, height: 0 }; // Will adjust after measurement
+
     
     // Shadow effect
     let shadowFilter = '';
@@ -583,8 +590,10 @@ class BaseGenerator {
     // Process text content - handle HTML tags
     let textContent = element.text;
     let hasHtmlTags = /<[^>]+>/.test(textContent);
+
     let textElement = '';
     let measureElement = '';
+
     
     // Curved text
     if (element.curve) {
@@ -616,6 +625,7 @@ class BaseGenerator {
       const escapedText = hasHtmlTags ? textContent.replace(/</g, '&lt;').replace(/>/g, '&gt;') : textContent;
       
       // Create the text element with textPath
+
       textElement = `
         <defs>
           ${shadowFilter}
@@ -706,6 +716,7 @@ class BaseGenerator {
       data: textElement,
       elementsData: calculatedData
     };
+
   }
   
   async processElement(element, generator, elementsData) {
