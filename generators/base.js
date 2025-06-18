@@ -637,8 +637,8 @@ class BaseGenerator {
           ${shadowFilter ? `<defs>${shadowFilter}</defs>` : ''}
           <text x="${xPos}" y="${yPos}" font-family="${fontFamily}" font-size="${fontSize}" font-weight="${fontWeight}" font-style="${fontStyle}" fill="${fill}" text-anchor="${textAnchor}" alignment-baseline="${alignmentBaseline}" transform="${transform}" ${element.shadow ? `filter="url(#${filterId})"` : ''}>
         `;
-        measureElement = `<text x="0" y="0" font-family="${fontFamily}" font-size="${fontSize}" font-weight="${fontWeight}" font-style="${fontStyle}" alignment-baseline="hanging">`;
-
+    const padding = element.backgroundPadding ?? element['background-padding'] ?? 6;
+      const rectSvg = `<rect x="${rectX}" y="${rectY}" width="${rectWidth}" height="${rectHeight}" rx="${cornerRadius}" ry="${cornerRadius}" fill="${bgColor}" ${transform ? `transform="${transform}"` : ''} />`;
         lines.forEach((line, index) => {
           // Escape any remaining HTML tags in each line
           const escapedLine = line.replace(/</g, '&lt;').replace(/>/g, '&gt;');

@@ -49,7 +49,8 @@ const event = {
                     "blur": 4
                 },
                 "background-color": "#ffff99",
-                "backgroundCornerRadius": 15
+                "backgroundCornerRadius": 15,
+                "backgroundPadding": 8
             }
         ]
     }
