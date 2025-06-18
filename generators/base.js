@@ -536,11 +536,11 @@ class BaseGenerator {
     let textAnchor = 'start'; // Default SVG text-anchor
     let alignmentBaseline = 'auto'; // Default SVG alignment-baseline. 'hanging' might be better for origin: null
   
-      if (element.origin === 'center') {
+    if (element.origin === 'center') {
       baseX = generator.imageWidth / 2;
       baseY = generator.imageHeight / 2;
-      textAnchor = 'middle'; // Center horizontally for center origin
-      if (element.y === null) alignmentBaseline = 'middle'; // Center vertically if y is null (approximate)
+      textAnchor = 'middle';
+      alignmentBaseline = 'middle';
     } else if (element.origin && elementsData[element.origin]) { // Check if origin exists and is processed
       const originElement = elementsData[element.origin];
       baseX = originElement.left; // Relative to origin element's top-left
@@ -561,7 +561,7 @@ class BaseGenerator {
   
     // Store calculated position (approximated for text)
     // Note: actual width/height of rendered text isn't easily known here without complex text measurement
-    const calculatedData = { left: xPos, top: yPos, width: 0, height: 0 }; // Mark as processed
+    const calculatedData = { left: xPos, top: yPos, width: 0, height: 0 }; // Will adjust after measurement
     
     // Shadow effect
     let shadowFilter = '';
@@ -669,6 +669,7 @@ class BaseGenerator {
       calculatedData.width = info.width;
       calculatedData.height = info.height;
 
+
       const padding = 6;
       const rectWidth = info.width + padding * 2;
       const rectHeight = info.height + padding * 2;
@@ -691,6 +692,7 @@ class BaseGenerator {
       const { info } = await sharp(Buffer.from(svgMeasure)).png().toBuffer({ resolveWithObject: true });
       calculatedData.width = info.width;
       calculatedData.height = info.height;
+
     }
 
     return {
