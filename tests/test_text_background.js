@@ -24,7 +24,8 @@ const event = {
         x: 0,
         y: 0,
         'background-color': '#ffff99',
-        backgroundCornerRadius: 20
+        backgroundCornerRadius: 20,
+        backgroundPadding: 8
       }
     ]
   }
