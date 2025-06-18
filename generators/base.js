@@ -283,8 +283,9 @@ class BaseGenerator {
           image = sharp(maskedImageBuffer);
           
           // If background is specified, create a background with the same mask shape
-          if (element.background) {
-            const bgColor = element.background;
+          const bgColor = element.background ?? element.mask?.background ??
+            element.mask?.backgroundColor ?? element.mask?.['background-color'];
+          if (bgColor) {
             
             // Create a background with the same mask shape
             let bgSvg = '';
@@ -359,11 +360,12 @@ class BaseGenerator {
             // Create a background image with the background color
             const bgBuffer = Buffer.from(bgSvg);
             const bgImage = await sharp(bgBuffer).toBuffer();
-            
+
             // Get the current image buffer
             const currentImageBuffer = await image.toBuffer();
-            
-            // Create a new transparent image
+
+            // Create a new transparent image and encode as PNG so it can be
+            // re-opened by sharp without raw parameters
             const transparentImage = await sharp({
               create: {
                 width: width,
@@ -371,7 +373,7 @@ class BaseGenerator {
                 channels: 4,
                 background: { r: 0, g: 0, b: 0, alpha: 0 }
               }
-            }).toBuffer();
+            }).png().toBuffer();
             
             // Composite the background first, then the masked image on top
             const compositeBuffer = await sharp(transparentImage)
@@ -385,6 +387,7 @@ class BaseGenerator {
                   blend: 'over'
                 }
               ])
+              .png()
               .toBuffer();
               
             // Create a new sharp instance with the composited image
@@ -533,11 +536,11 @@ class BaseGenerator {
     let textAnchor = 'start'; // Default SVG text-anchor
     let alignmentBaseline = 'auto'; // Default SVG alignment-baseline. 'hanging' might be better for origin: null
   
-      if (element.origin === 'center') {
+    if (element.origin === 'center') {
       baseX = generator.imageWidth / 2;
       baseY = generator.imageHeight / 2;
-      textAnchor = 'middle'; // Center horizontally for center origin
-      if (element.y === null) alignmentBaseline = 'middle'; // Center vertically if y is null (approximate)
+      textAnchor = 'middle';
+      alignmentBaseline = 'middle';
     } else if (element.origin && elementsData[element.origin]) { // Check if origin exists and is processed
       const originElement = elementsData[element.origin];
       baseX = originElement.left; // Relative to origin element's top-left
@@ -558,7 +561,7 @@ class BaseGenerator {
   
     // Store calculated position (approximated for text)
     // Note: actual width/height of rendered text isn't easily known here without complex text measurement
-    const calculatedData = { left: xPos, top: yPos, width: 0, height: 0 }; // Mark as processed
+    const calculatedData = { left: xPos, top: yPos, width: 0, height: 0 }; // Will adjust after measurement
     
     // Shadow effect
     let shadowFilter = '';
@@ -581,6 +584,7 @@ class BaseGenerator {
     let textContent = element.text;
     let hasHtmlTags = /<[^>]+>/.test(textContent);
     let textElement = '';
+    let measureElement = '';
     
     // Curved text
     if (element.curve) {
@@ -621,35 +625,82 @@ class BaseGenerator {
           <textPath href="#${pathId}" startOffset="50%" text-anchor="middle">${escapedText}</textPath>
         </text>
       `;
+      measureElement = textElement;
     } else {
       // Regular text - handle HTML tags like <br>
       if (hasHtmlTags) {
         // Handle <br> tags for line breaks
         const lines = textContent.split(/<br\s*\/?>/i);
         const lineHeight = parseInt(fontSize) * 1.2; // Approximate line height
-        
-        textElement = `
-          ${shadowFilter ? `<defs>${shadowFilter}</defs>` : ''}
-          <text x="${xPos}" y="${yPos}" font-family="${fontFamily}" font-size="${fontSize}" font-weight="${fontWeight}" font-style="${fontStyle}" fill="${fill}" text-anchor="${textAnchor}" alignment-baseline="${alignmentBaseline}" transform="${transform}" ${element.shadow ? `filter="url(#${filterId})"` : ''}>
-        `;
-        
+
+        measureElement = `<text x="0" y="0" font-family="${fontFamily}" font-size="${fontSize}" font-weight="${fontWeight}" font-style="${fontStyle}" alignment-baseline="hanging">`;
         lines.forEach((line, index) => {
-          // Escape any remaining HTML tags in each line
           const escapedLine = line.replace(/</g, '&lt;').replace(/>/g, '&gt;');
           const dy = index === 0 ? '0' : `${lineHeight}`;
-          textElement += `<tspan x="${xPos}" dy="${dy}" text-anchor="${textAnchor}">${escapedLine}</tspan>`;
+          measureElement += `<tspan x="0" dy="${dy}">${escapedLine}</tspan>`;
         });
-        
-        textElement += `</text>`;
+        measureElement += `</text>`;
       } else {
-        // No HTML tags, just regular text
-        textElement = `
-          ${shadowFilter ? `<defs>${shadowFilter}</defs>` : ''}
-          <text x="${xPos}" y="${yPos}" font-family="${fontFamily}" font-size="${fontSize}" font-weight="${fontWeight}" font-style="${fontStyle}" fill="${fill}" text-anchor="${textAnchor}" alignment-baseline="${alignmentBaseline}" transform="${transform}" ${element.shadow ? `filter="url(#${filterId})"` : ''}>${textContent}</text>
-        `;
+        measureElement = `<text x="0" y="0" font-family="${fontFamily}" font-size="${fontSize}" font-weight="${fontWeight}" font-style="${fontStyle}" alignment-baseline="hanging">${textContent}</text>`;
       }
     }
-  
+
+    // ----- Background behind text -----
+    const bgColor = element.background ?? element.backgroundColor ?? element['background-color'];
+    const cornerRadius = element.backgroundCornerRadius ?? element.backgroundRadius ?? element['background-corner-radius'] ?? 0;
+    const padding = element.backgroundPadding ?? element['background-padding'] ?? 6;
+
+    const svgMeasure = `<svg xmlns="http://www.w3.org/2000/svg">${measureElement}</svg>`;
+    const { info } = await sharp(Buffer.from(svgMeasure)).png().toBuffer({ resolveWithObject: true });
+
+    if (element.curve) {
+      // For curved text we simply return the measured element
+      calculatedData.width = info.width;
+      calculatedData.height = info.height;
+      calculatedData.left = xPos - info.width / 2;
+      calculatedData.top = yPos - info.height / 2;
+    } else {
+      // Determine reference position
+      const refX = xPos;
+      const refY = alignmentBaseline === 'middle' ? yPos - info.height / 2 : yPos;
+
+      let textX = refX;
+      if (textAnchor === 'middle') textX = refX - info.width / 2;
+      else if (textAnchor === 'end') textX = refX - info.width;
+
+      let textY = refY;
+
+      calculatedData.width = info.width;
+      calculatedData.height = info.height;
+      calculatedData.left = textX;
+      calculatedData.top = textY;
+
+      const rectWidth = info.width + padding * 2;
+      const rectHeight = info.height + padding * 2;
+      const rectX = textX - padding;
+      const rectY = textY - padding;
+
+      let rectSvg = '';
+      if (bgColor) {
+        rectSvg = `<rect x="${rectX}" y="${rectY}" width="${rectWidth}" height="${rectHeight}" rx="${cornerRadius}" ry="${cornerRadius}" fill="${bgColor}" ${transform ? `transform="${transform}"` : ''} />`;
+      }
+
+      // Build the final text element
+      if (hasHtmlTags) {
+        const lines = textContent.split(/<br\s*\/?>/i);
+        const lineHeight = parseInt(fontSize) * 1.2;
+        textElement = `${shadowFilter ? `<defs>${shadowFilter}</defs>` : ''}${rectSvg}<text x="${textX}" y="${textY}" font-family="${fontFamily}" font-size="${fontSize}" font-weight="${fontWeight}" font-style="${fontStyle}" fill="${fill}" text-anchor="${textAnchor}" alignment-baseline="hanging" ${element.shadow ? `filter="url(#${filterId})"` : ''} ${transform ? `transform="${transform}"` : ''}>`;
+        lines.forEach((line, index) => {
+          const escapedLine = line.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const dy = index === 0 ? '0' : `${lineHeight}`;
+          textElement += `<tspan x="${textX}" dy="${dy}" text-anchor="${textAnchor}">${escapedLine}</tspan>`;
+        });
+        textElement += `</text>`;
+      } else {
+        textElement = `${shadowFilter ? `<defs>${shadowFilter}</defs>` : ''}${rectSvg}<text x="${textX}" y="${textY}" font-family="${fontFamily}" font-size="${fontSize}" font-weight="${fontWeight}" font-style="${fontStyle}" fill="${fill}" text-anchor="${textAnchor}" alignment-baseline="hanging" ${transform ? `transform="${transform}"` : ''} ${element.shadow ? `filter="url(#${filterId})"` : ''}>${textContent}</text>`;
+      }
+    }
+
     return {
       type: 'svg',
       data: textElement,
