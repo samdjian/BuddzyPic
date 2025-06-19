@@ -674,21 +674,31 @@ class BaseGenerator {
       const refX = xPos;
       const refY = alignmentBaseline === 'middle' ? yPos - info.height / 2 : yPos;
 
+      // Use refX/refY as the anchor point for the text. text-anchor and
+      // alignment-baseline will handle centering.
       let textX = refX;
-      if (textAnchor === 'middle') textX = refX - info.width / 2;
-      else if (textAnchor === 'end') textX = refX - info.width;
-
-      let textY = refY;
+      let textY = alignmentBaseline === 'middle' ? yPos : refY;
 
       calculatedData.width = info.width;
       calculatedData.height = info.height;
-      calculatedData.left = textX;
-      calculatedData.top = textY;
+      calculatedData.left =
+        textAnchor === 'middle'
+          ? refX - info.width / 2
+          : textAnchor === 'end'
+          ? refX - info.width
+          : refX;
+      calculatedData.top = alignmentBaseline === 'middle' ? yPos - info.height / 2 : refY;
 
       const rectWidth = info.width + padding * 2;
       const rectHeight = info.height + padding * 2;
-      const rectX = textX - padding;
-      const rectY = textY - padding;
+      const rectX =
+        (textAnchor === 'middle'
+          ? refX - info.width / 2
+          : textAnchor === 'end'
+          ? refX - info.width
+          : refX) -
+        padding;
+      const rectY = (alignmentBaseline === 'middle' ? yPos - info.height / 2 : refY) - padding;
 
       let rectSvg = '';
       if (bgColor) {
@@ -699,7 +709,7 @@ class BaseGenerator {
       if (hasHtmlTags) {
         const lines = textContent.split(/<br\s*\/?>/i);
         const lineHeight = parseInt(fontSize) * 1.2;
-        textElement = `${shadowFilter ? `<defs>${shadowFilter}</defs>` : ''}${rectSvg}<text x="${textX}" y="${textY}" font-family="${fontFamily}" font-size="${fontSize}" font-weight="${fontWeight}" font-style="${fontStyle}" fill="${fill}" text-anchor="${textAnchor}" alignment-baseline="hanging" ${element.shadow ? `filter="url(#${filterId})"` : ''} ${transform ? `transform="${transform}"` : ''}>`;
+        textElement = `${shadowFilter ? `<defs>${shadowFilter}</defs>` : ''}${rectSvg}<text x="${textX}" y="${textY}" font-family="${fontFamily}" font-size="${fontSize}" font-weight="${fontWeight}" font-style="${fontStyle}" fill="${fill}" text-anchor="${textAnchor}" alignment-baseline="${alignmentBaseline}" ${element.shadow ? `filter="url(#${filterId})"` : ''} ${transform ? `transform="${transform}"` : ''}>`;
         lines.forEach((line, index) => {
           const escapedLine = line.replace(/</g, '&lt;').replace(/>/g, '&gt;');
           const dy = index === 0 ? '0' : `${lineHeight}`;
@@ -707,7 +717,7 @@ class BaseGenerator {
         });
         textElement += `</text>`;
       } else {
-        textElement = `${shadowFilter ? `<defs>${shadowFilter}</defs>` : ''}${rectSvg}<text x="${textX}" y="${textY}" font-family="${fontFamily}" font-size="${fontSize}" font-weight="${fontWeight}" font-style="${fontStyle}" fill="${fill}" text-anchor="${textAnchor}" alignment-baseline="hanging" ${transform ? `transform="${transform}"` : ''} ${element.shadow ? `filter="url(#${filterId})"` : ''}>${textContent}</text>`;
+        textElement = `${shadowFilter ? `<defs>${shadowFilter}</defs>` : ''}${rectSvg}<text x="${textX}" y="${textY}" font-family="${fontFamily}" font-size="${fontSize}" font-weight="${fontWeight}" font-style="${fontStyle}" fill="${fill}" text-anchor="${textAnchor}" alignment-baseline="${alignmentBaseline}" ${transform ? `transform="${transform}"` : ''} ${element.shadow ? `filter="url(#${filterId})"` : ''}>${textContent}</text>`;
       }
     }
 
