@@ -657,8 +657,12 @@ class BaseGenerator {
 
     // ----- Background behind text -----
     const bgColor = element.background ?? element.backgroundColor ?? element['background-color'];
-    const cornerRadius = element.backgroundCornerRadius ?? element.backgroundRadius ?? element['background-corner-radius'] ?? 0;
-    const padding = element.backgroundPadding ?? element['background-padding'] ?? 6;
+    const cornerRadius = this.parseCornerRadiusSpec(
+      element.backgroundCornerRadius ?? element.backgroundRadius ?? element['background-corner-radius'] ?? 0
+    );
+    const padding = this.parsePaddingSpec(
+      element.backgroundPadding ?? element['background-padding'] ?? 6
+    );
 
     const svgMeasure = `<svg xmlns="http://www.w3.org/2000/svg">${measureElement}</svg>`;
     const { info } = await sharp(Buffer.from(svgMeasure)).png().toBuffer({ resolveWithObject: true });
@@ -689,20 +693,21 @@ class BaseGenerator {
           : refX;
       calculatedData.top = alignmentBaseline === 'middle' ? yPos - info.height / 2 : refY;
 
-      const rectWidth = info.width + padding * 2;
-      const rectHeight = info.height + padding * 2;
+      const rectWidth = info.width + padding.left + padding.right;
+      const rectHeight = info.height + padding.top + padding.bottom;
       const rectX =
         (textAnchor === 'middle'
           ? refX - info.width / 2
           : textAnchor === 'end'
           ? refX - info.width
           : refX) -
-        padding;
-      const rectY = (alignmentBaseline === 'middle' ? yPos - info.height / 2 : refY) - padding;
+        padding.left;
+      const rectY = (alignmentBaseline === 'middle' ? yPos - info.height / 2 : refY) - padding.top;
 
       let rectSvg = '';
       if (bgColor) {
-        rectSvg = `<rect x="${rectX}" y="${rectY}" width="${rectWidth}" height="${rectHeight}" rx="${cornerRadius}" ry="${cornerRadius}" fill="${bgColor}" ${transform ? `transform="${transform}"` : ''} />`;
+        const pathData = this.buildRoundedRectPath(rectX, rectY, rectWidth, rectHeight, cornerRadius);
+        rectSvg = `<path d="${pathData}" fill="${bgColor}" ${transform ? `transform="${transform}"` : ''} />`;
       }
 
       // Build the final text element
@@ -755,6 +760,74 @@ class BaseGenerator {
       }
   
       return image.resize(targetWidth, targetHeight, { fit: 'inside' });
+  }
+
+  parsePaddingSpec(padding) {
+    if (typeof padding === 'number') {
+      return { top: padding, right: padding, bottom: padding, left: padding };
+    }
+    if (typeof padding === 'string') {
+      const parts = padding.split(/[,\s]+/).map((p) => parseFloat(p));
+      if (parts.length === 1) {
+        return { top: parts[0], right: parts[0], bottom: parts[0], left: parts[0] };
+      } else if (parts.length === 2) {
+        return { top: parts[0], right: parts[1], bottom: parts[0], left: parts[1] };
+      } else if (parts.length === 3) {
+        return { top: parts[0], right: parts[1], bottom: parts[2], left: parts[1] };
+      } else if (parts.length >= 4) {
+        return { top: parts[0], right: parts[1], bottom: parts[2], left: parts[3] };
+      }
+    }
+    if (typeof padding === 'object' && padding !== null) {
+      return {
+        top: padding.top ?? padding.t ?? 0,
+        right: padding.right ?? padding.r ?? 0,
+        bottom: padding.bottom ?? padding.b ?? 0,
+        left: padding.left ?? padding.l ?? 0,
+      };
+    }
+    return { top: 0, right: 0, bottom: 0, left: 0 };
+  }
+
+  parseCornerRadiusSpec(radius) {
+    if (typeof radius === 'number') {
+      return { tl: radius, tr: radius, br: radius, bl: radius };
+    }
+    if (typeof radius === 'string') {
+      const parts = radius.split(/[,\s]+/).map((p) => parseFloat(p));
+      if (parts.length === 1) {
+        return { tl: parts[0], tr: parts[0], br: parts[0], bl: parts[0] };
+      } else if (parts.length === 2) {
+        return { tl: parts[0], tr: parts[1], br: parts[0], bl: parts[1] };
+      } else if (parts.length === 3) {
+        return { tl: parts[0], tr: parts[1], br: parts[2], bl: parts[1] };
+      } else if (parts.length >= 4) {
+        return { tl: parts[0], tr: parts[1], br: parts[2], bl: parts[3] };
+      }
+    }
+    if (typeof radius === 'object' && radius !== null) {
+      return {
+        tl: radius.topLeft ?? radius.tl ?? 0,
+        tr: radius.topRight ?? radius.tr ?? 0,
+        br: radius.bottomRight ?? radius.br ?? 0,
+        bl: radius.bottomLeft ?? radius.bl ?? 0,
+      };
+    }
+    return { tl: 0, tr: 0, br: 0, bl: 0 };
+  }
+
+  buildRoundedRectPath(x, y, width, height, radii) {
+    const { tl, tr, br, bl } = radii;
+    return `M ${x + tl} ${y}
+      H ${x + width - tr}
+      A ${tr} ${tr} 0 0 1 ${x + width} ${y + tr}
+      V ${y + height - br}
+      A ${br} ${br} 0 0 1 ${x + width - br} ${y + height}
+      H ${x + bl}
+      A ${bl} ${bl} 0 0 1 ${x} ${y + height - bl}
+      V ${y + tl}
+      A ${tl} ${tl} 0 0 1 ${x + tl} ${y}
+      Z`;
   }
 
   async trimImage(inputBuffer) {
