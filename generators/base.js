@@ -637,19 +637,18 @@ class BaseGenerator {
       `;
       measureElement = textElement;
     } else {
-      const refY = yPos;
-      const textXAttr = refX;
-      const textYAttr = refY;
-      const bboxLeft = textAnchor === 'middle' ? refX - info.width / 2
-                        : textAnchor === 'end' ? refX - info.width : refX;
-      const bboxTop = alignmentBaseline === 'middle' ? refY - info.height / 2 : refY;
-      calculatedData.left = bboxLeft;
-      calculatedData.top = bboxTop;
-      const rectX = bboxLeft - padding;
-      const rectY = bboxTop - padding;
-        textElement = `${shadowFilter ? `<defs>${shadowFilter}</defs>` : ''}${rectSvg}<text x="${textXAttr}" y="${textYAttr}" font-family="${fontFamily}" font-size="${fontSize}" font-weight="${fontWeight}" font-style="${fontStyle}" fill="${fill}" text-anchor="${textAnchor}" alignment-baseline="${alignmentBaseline}" ${element.shadow ? `filter="url(#${filterId})"` : ''} ${transform ? `transform="${transform}"` : ''}>`;
-          textElement += `<tspan x="${textXAttr}" dy="${dy}" text-anchor="${textAnchor}">${escapedLine}</tspan>`;
-        textElement = `${shadowFilter ? `<defs>${shadowFilter}</defs>` : ''}${rectSvg}<text x="${textXAttr}" y="${textYAttr}" font-family="${fontFamily}" font-size="${fontSize}" font-weight="${fontWeight}" font-style="${fontStyle}" fill="${fill}" text-anchor="${textAnchor}" alignment-baseline="${alignmentBaseline}" ${transform ? `transform="${transform}"` : ''} ${element.shadow ? `filter="url(#${filterId})"` : ''}>${textContent}</text>`;
+      // Regular text - handle HTML tags like <br>
+      if (hasHtmlTags) {
+        // Handle <br> tags for line breaks
+        const lines = textContent.split(/<br\s*\/?>/i);
+        const lineHeight = parseInt(fontSize) * 1.2; // Approximate line height
+
+        measureElement = `<text x="0" y="0" font-family="${fontFamily}" font-size="${fontSize}" font-weight="${fontWeight}" font-style="${fontStyle}" alignment-baseline="hanging">`;
+        lines.forEach((line, index) => {
+          const escapedLine = line.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const dy = index === 0 ? '0' : `${lineHeight}`;
+          measureElement += `<tspan x="0" dy="${dy}">${escapedLine}</tspan>`;
+        });
         measureElement += `</text>`;
       } else {
         measureElement = `<text x="0" y="0" font-family="${fontFamily}" font-size="${fontSize}" font-weight="${fontWeight}" font-style="${fontStyle}" alignment-baseline="hanging">${textContent}</text>`;
