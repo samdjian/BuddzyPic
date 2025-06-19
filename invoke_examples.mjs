@@ -350,6 +350,21 @@ const event = {
                 "background-color": "#ffff99",
                 "backgroundCornerRadius": 20,
                 "backgroundPadding": 8
+            },
+            {
+                "id": "bg-text-advanced",
+                "type": "text",
+                "text": "Custom Corners & Padding",
+                "fontFamily": "sans-serif",
+                "fontSize": "40px",
+                "fontWeight": "bold",
+                "color": "#333333",
+                "origin": "center",
+                "x": 0,
+                "y": 800,
+                "background": "#ccffcc",
+                "backgroundCornerRadius": "10 20 30 40",
+                "backgroundPadding": { "top": 10, "right": 20, "bottom": 5, "left": 15 }
 
             }
         ]
