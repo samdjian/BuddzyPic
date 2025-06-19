@@ -72,8 +72,8 @@ This will generate an `outputs/feature-examples.png` file showcasing all the ava
             *   `color`: The color of the text.
             *   `rotation`: The rotation of the text.
             *   `background`, `backgroundColor`, or `background-color`: Background color behind the text. Optional.
-            *   `backgroundCornerRadius` or `background-corner-radius`: Corner radius for the background. Optional.
-            *   `backgroundPadding` or `background-padding`: Internal padding around the text when a background is used. Optional, default is 6 pixels.
+            *   `backgroundCornerRadius` or `background-corner-radius`: Corner radius for the background. Accepts a single number or CSS-style values to control each corner individually.
+            *   `backgroundPadding` or `background-padding`: Internal padding around the text when a background is used. Accepts a single number or CSS-style values for top/right/bottom/left. Optional, default is 6 pixels.
             *   Backgrounds include a small internal margin and span all text lines, including those created with `<br>`.
             *   `shadow`: Object containing shadow properties. Optional.
                 *   `color`: The color of the shadow. Optional, default is 'black'.
